@@ -13,9 +13,13 @@ dashboardPage(
             bs4SidebarMenu(
                 id = "current_tab",
                 bs4SidebarMenuItem(
+                    text = "Inicio",
+                    tabName = "inicio",
+                    icon = shiny::icon("globe")
+                ),
+                bs4SidebarMenuItem(
                     text = "WDI",
                     tabName = "wdi",
-                    # icon =  "tachometer-alt",
                     icon = shiny::icon("globe")
                     ),
                 bs4SidebarMenuItem(
@@ -33,10 +37,13 @@ dashboardPage(
                 bs4TabItem(
                     tabName = "inicio",
                     fluidRow(
-                        box(plotOutput("plot1", height = 250)),
+                        box(
+                            highchartOutput("mapainicio", height = 600),
+                            width = 12
+                            ),
                         box(
                             title = "Controls",
-                            sliderInput("slider", "Number of observations:", 1, 100, 50)
+                            sliderInput("mapaslider", "Number of observations:", 1960, 2018, 2018)
                             )
                         )
                     )
