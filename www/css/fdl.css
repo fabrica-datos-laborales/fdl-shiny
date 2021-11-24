@@ -1,4 +1,25 @@
+:root {
+  --red: #EC1E28;
+  --white: #ffffff;
+}
+
+
 .sidebar-dark-primary .nav-sidebar>.nav-item>.nav-link.active, .sidebar-light-primary .nav-sidebar>.nav-item>.nav-link.active {
-    background-color: #EC1E28;
-    color: #fff;
+  background-color: var(--red);
+  color: #fff;
+}
+
+/* slider */
+.irs--shiny .irs-bar {
+  border-top: 1px solid var(--red);
+  border-bottom: 1px solid var(--red);
+  background: var(--red);
+}
+
+.irs--shiny .irs-from, .irs--shiny .irs-to, .irs--shiny .irs-single {
+  background-color: var(--red);
+}
+
+a {
+  color: var(--red);
 }

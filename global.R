@@ -1,8 +1,8 @@
 library(shiny)
 library(bs4Dash) # remotes::install_github("RinteRface/bs4Dash", force = TRUE)
 
-library(dplyr)
-library(highcharter)
+library(tidyverse)
+library(highcharter)  # remotes::install_github("jbkunst/highcharter", force = TRUE)
 
 # parametros
 PARS <- list(
