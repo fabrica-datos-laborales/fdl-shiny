@@ -1,27 +1,26 @@
-input <- list(
-    mapaslider = 1990
-)
-
-ictwss <- readRDS(url("https://github.com/fabrica-datos-laborales/fdl-data/blob/main/output/data/proc/ictwss.rds?raw=true"))
+# input <- list(
+#   iso = "USA",
+#   mapaslider = 1990
+# )
 
 shinyServer(function(input, output, session) {
 
   output$mapainicio <- renderHighchart({
 
-    dmap <- ictwss %>%
-      filter(!is.na(UD)) %>%
+    dmap <- TABLAS$ictwss %>%
+      filter(!is.na(ud)) %>%
       group_by(iso3c, country) %>%
       filter(year == max(year)) %>%
-      select(iso3 = iso3c, year, country, UD) %>%
+      select(iso3 = iso3c, year, country, ud) %>%
       ungroup() %>%
-      rename(value = UD)
+      rename(value = ud)
 
     # summarise(dmap, min(value), max(value))
 
     # dmap
 
-    label <- ictwss %>%
-      select(UD) %>%
+    label <- TABLAS$ictwss %>%
+      select(ud) %>%
       pull() %>%
       attr("label")
 
@@ -54,17 +53,65 @@ shinyServer(function(input, output, session) {
 
     message(str_c("observeEvent(input$mapaslider: ", input$mapaslider))
 
-    dmap <- ictwss %>%
-      select(iso3 = iso3c, year, country, UD) %>%
+    dmap <- TABLAS$ictwss %>%
+      select(iso3 = iso3c, year, country, ud) %>%
       group_by(iso3, country) %>%
-      tidyr::fill(UD, .direction = "downup") %>%
+      tidyr::fill(ud, .direction = "downup") %>%
       filter(year == input$mapaslider) %>%
       ungroup() %>%
-      rename(value = UD)
+      rename(value = ud)
 
     highchartProxy("mapainicio") %>%
       hcpxy_update_series(id = "data", data = list_parse(dmap))
 
     })
+
+# ictwss ------------------------------------------------------------------
+  output$ictwss_anio_ud_fem_ud_male <- renderHighchart({
+
+    grafico_anio_tbl_iso_vars(tbl = "ictwss", iso = input$iso, vars = c("ud_fem", "ud_male"))
+
+  })
+
+# wdi ---------------------------------------------------------------------
+  output$wdi_anio_gini <- renderHighchart({
+
+    grafico_anio_tbl_iso_vars(tbl = "wdi", iso = input$iso, vars = "gini_in_wdi")
+
+  })
+
+# oecd --------------------------------------------------------------------
+  output$oecd_anio_rmw <- renderHighchart({
+
+    grafico_anio_tbl_iso_vars(tbl = "oecd", iso = input$iso, vars = "rmw")
+
+  })
+
+# ilo ---------------------------------------------------------------------
+# dpi ---------------------------------------------------------------------
+  output$oecd_anio_rmw <- renderHighchart({
+    # TABLAS$dpi$dhondt
+    # TABLAS$dpi$prop
+    # TABLAS$dpi$dhondt
+    # grafico_anio_tbl_iso_vars(tbl = "dpi", iso = input$iso, vars = "rmw")
+
+  })
+# ilo2 --------------------------------------------------------------------
+  output$ilo2_anio_nstrikes_isic31_total <- renderHighchart({
+
+    grafico_anio_tbl_iso_vars(tbl = "ilo", iso = input$iso, vars = "nstrikes_isic31_total")
+
+  })
+# iloeplex ----------------------------------------------------------------
+  # output$ilo2_anio_nstrikes_isic31_total <- renderHighchart({
+  #   # TABLAS$iloeplex$spd_wrep
+  #   # grafico_anio_tbl_iso_vars(tbl = "ilo", iso = input$iso, vars = "nstrikes_isic31_total")
+  #
+  # })
+
+# issp --------------------------------------------------------------------
+# vws ---------------------------------------------------------------------
+# vdem --------------------------------------------------------------------
+# latinobarometro ---------------------------------------------------------
 
 })
