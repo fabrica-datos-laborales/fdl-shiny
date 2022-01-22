@@ -1,6 +1,7 @@
 # input <- list(
 #   iso = "USA",
-#   mapaslider = 1990
+#   mapaslider = 1990,
+#   issp_mapa_slider = 1999
 # )
 
 shinyServer(function(input, output, session) {
@@ -26,7 +27,8 @@ shinyServer(function(input, output, session) {
 
     label
 
-    color_stops_index <- color_stops(colors = c("white", PARS$color_main), n = 10)
+    # color_stops_index <- color_stops(colors = c("white", PARS$color_main), n = 10)
+    color_stops_index <- color_stops(colors = viridisLite::viridis(option = "F", n = 100), n = 100)
 
     pmap  <- highchart(type = "map") %>%
       hc_chart(map = JS("Highcharts.maps['custom/world-robinson-highres']")) %>%
@@ -36,7 +38,7 @@ shinyServer(function(input, output, session) {
         data = list_parse(dmap)
         ) %>%
       hc_plotOptions(map = list(joinBy = c("iso-a3", "iso3"))) %>%
-      hc_colorAxis(stops = color_stops_index, type = "logarithmic", min = 1, max = 100) %>%
+      hc_colorAxis(stops = color_stops_index, min = 1, max = 100) %>%
       hc_legend(symbolWidth = 500, align = "center", verticalAlign = "bottom") %>%
       # hc_mapNavigation(enabled = TRUE) %>%
       hc_credits(enabled = FALSE, text = "Fuente: Una importante institución") %>%
@@ -73,15 +75,25 @@ shinyServer(function(input, output, session) {
 
   })
 
+  output$ictwss_anio_ud <- renderHighchart({
+
+    grafico_anio_tbl_iso_vars(tbl = "ictwss", iso = input$iso, vars = c("ud"))
+
+  })
+
+
+
 # wdi ---------------------------------------------------------------------
   output$wdi_anio_gini <- renderHighchart({
 
-    grafico_anio_tbl_iso_vars(tbl = "wdi", iso = input$iso, vars = "gini_in_wdi")
+    grafico_anio_tbl_iso_vars(tbl = "wdi", iso = input$iso, vars = "gini_in")
 
   })
 
 # oecd --------------------------------------------------------------------
-  output$oecd_anio_rmw <- renderHighchart({
+  output$oecd_anio_rnw <- renderHighchart({
+
+    message("oecd_anio_rmw")
 
     grafico_anio_tbl_iso_vars(tbl = "oecd", iso = input$iso, vars = "rmw")
 
@@ -96,12 +108,6 @@ shinyServer(function(input, output, session) {
     # grafico_anio_tbl_iso_vars(tbl = "dpi", iso = input$iso, vars = "rmw")
 
   })
-# ilo2 --------------------------------------------------------------------
-  output$ilo2_anio_nstrikes_isic31_total <- renderHighchart({
-
-    grafico_anio_tbl_iso_vars(tbl = "ilo", iso = input$iso, vars = "nstrikes_isic31_total")
-
-  })
 # iloeplex ----------------------------------------------------------------
   # output$ilo2_anio_nstrikes_isic31_total <- renderHighchart({
   #   # TABLAS$iloeplex$spd_wrep
@@ -110,6 +116,77 @@ shinyServer(function(input, output, session) {
   # })
 
 # issp --------------------------------------------------------------------
+  output$issp_mapa_conflict_very_strong <- renderHighchart({
+
+    dmap <-  TABLAS$issp %>%
+      filter(!is.na(`conflict_very_strong/strong`)) %>%
+      group_by(iso3c) %>%
+      tidyr::fill(`conflict_very_strong/strong`, .direction = "downup") %>%
+      filter(year == max(year)) %>%
+      select(iso3 = iso3c, year, `conflict_very_strong/strong`) %>%
+      ungroup() %>%
+      rename(value = `conflict_very_strong/strong`)
+
+    dmap <- dmap %>%
+      mutate(iso3 = as.character(iso3)) %>%
+      left_join(ots_countries %>% select(iso3c, country = country_name_english), by = c("iso3" = "iso3c"))
+
+   label <- TABLAS$issp %>%
+      select(`conflict_very_strong/strong`) %>%
+      pull() %>%
+      attr("label")
+
+    label
+
+    # color_stops_index <- color_stops(colors = c("white", PARS$color_main), n = 10)
+    color_stops_index <- color_stops(colors = viridisLite::viridis(option = "F", n = 100), n = 100)
+
+    pmap <- highchart(type = "map") %>%
+      hc_chart(map = JS("Highcharts.maps['custom/world-robinson-highres']")) %>%
+      hc_add_series(
+        id = "data",
+        name = label,
+        data = list_parse(dmap)
+      ) %>%
+      hc_plotOptions(map = list(joinBy = c("iso-a3", "iso3"))) %>%
+      hc_colorAxis(stops = color_stops_index, type = "logarithmic", min = 1, max = 100) %>%
+      hc_legend(symbolWidth = 500, align = "center", verticalAlign = "bottom") %>%
+      # hc_mapNavigation(enabled = TRUE) %>%
+      hc_credits(enabled = FALSE, text = "Fuente: Una importante institución") %>%
+      hc_tooltip(
+        valueDecimals = 2,
+        pointFormat = "{point.country}: <b>{point.value}%</b> (year: {point.year})<br/>"
+      )
+
+    pmap
+
+  })
+
+  observeEvent(input$issp_mapa_slider, {
+
+    message(str_c("observeEvent(input$issp_mapa_slider: ", input$issp_mapa_slider))
+
+    dmap <- TABLAS$issp %>%
+      filter(!is.na(`conflict_very_strong/strong`)) %>%
+      group_by(iso3c) %>%
+      tidyr::fill(`conflict_very_strong/strong`, .direction = "downup") %>%
+      filter(year == input$issp_mapa_slider) %>%
+      select(iso3 = iso3c, year, `conflict_very_strong/strong`) %>%
+      ungroup() %>%
+      rename(value = `conflict_very_strong/strong`)
+
+    dmap <- dmap %>%
+      mutate(iso3 = as.character(iso3)) %>%
+      left_join(ots_countries %>% select(iso3c, country = country_name_english), by = c("iso3" = "iso3c"))
+
+    glimpse(dmap)
+
+    highchartProxy("issp_mapa_conflict_very_strong") %>%
+      hcpxy_update_series(id = "data", data = list_parse(dmap))
+
+  })
+
+
 # vws ---------------------------------------------------------------------
 # vdem --------------------------------------------------------------------
 # latinobarometro ---------------------------------------------------------

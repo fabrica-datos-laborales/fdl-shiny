@@ -38,26 +38,45 @@ options(
 
 
 # data --------------------------------------------------------------------
-TABLAS <- list(
-  ictwss   = readRDS(url(file.path(PARS$url_data, "ictwss.rds?raw=true"))),
-  wdi      = readRDS(url(file.path(PARS$url_data, "wdi.rds?raw=true"))),
-  oecd     = readRDS(url(file.path(PARS$url_data, "oecd.rds?raw=true"))),
-  ilo      = readRDS(url(file.path(PARS$url_data, "ilo-stat.rds?raw=true"))),
-  dpi      = readRDS(url(file.path(PARS$url_data, "dpi.rds?raw=true"))),
-  iloeplex = readRDS(url(file.path(PARS$url_data, "iloeplex.rds?raw=true")))
-)
+tbls <- c("ictwss", "wdi", "oecd", "ilo-stat",
+          "dpi", "iloeplex", "issp", "wvs", "vdem", "latino")
 
-TABLAS <- TABLAS %>%
-  map(tibble) %>%
-  # map(~ .x %>% mutate(across(where( ~ "labelled" %in% class(.x)), as.character))) %>%
-  map(~ .x %>% mutate(across(matches("year"), as.numeric))) %>%
-  map(rename_all, str_to_lower)
+if(!file.exists("data/tablas.rds")) {
+
+  TABLAS <- tbls %>%
+    map(str_c, ".rds?raw=true") %>%
+    map(~ file.path(PARS$url_data, .x)) %>%
+    map(url) %>%
+    map(readRDS) %>%
+    map(as_tibble) %>%
+    map(~ .x %>% mutate(across(matches("year"), as.numeric))) %>%
+    map(rename_all, str_to_lower) %>%
+    set_names(tbls)
+
+  rm(tbls)
+
+  saveRDS(TABLAS, "data/tablas.rds")
+
+} else {
+
+  TABLAS <- readRDS("data/tablas.rds")
+
+}
 
 ots_countries <- tradestatistics::ots_countries %>%
   as_tibble() %>%
   mutate(iso3c = str_to_upper(country_iso))
 
 glimpse(ots_countries)
+
+
+dcodigos <- read_csv("data/libro-codigos-fdl-variables.csv")
+dcodigos <- janitor::clean_names(dcodigos)
+dcodigos <- dcodigos %>%
+  mutate(definicion = coalesce(definicion_en_espanol, definicion_en_ingles))
+#
+# dcodigos %>%
+#   filter(str_detect(nombre_de_variable, "ud_male"))
 
 # choices -----------------------------------------------------------------
 PAISES_OPCIONES <- TABLAS$wdi %>%
@@ -73,7 +92,27 @@ get_name_from_iso <- function(iso3c) {
   names(PAISES_OPCIONES[PAISES_OPCIONES == iso3c])
 }
 
+
 grafico_anio_tbl_iso_vars <- function(tbl = "wdi", iso = "USA", vars = c("gini_in_wdi"), verbose = PARS$verbose){
+
+
+  # tbl = "ictwss"
+  # iso = "USA"
+  # vars = c("ud_fem", "ud_male")
+
+  # tbl = "wdi"
+  # iso = "USA"
+  # vars = "gini_in"
+
+  dcodigos2 <- dcodigos %>%
+    # select(nombre_de_variable, definicion) %>%
+    filter(str_detect(nombre_de_variable, str_c(vars, collapse = "|"))) %>%
+    mutate(
+      nombre_de_variable = str_remove(nombre_de_variable, str_c("_", tbl)),
+      nombre_de_variable = str_trim(nombre_de_variable)
+      )
+
+  glimpse(dcodigos2)
 
   if(verbose) {
     message("grafico_anio_tbl_iso_vars:")
@@ -91,13 +130,21 @@ grafico_anio_tbl_iso_vars <- function(tbl = "wdi", iso = "USA", vars = c("gini_i
     arrange(x, group) %>%
     filter(complete.cases(.))
 
-  if(length(vars) == 1) {
+  # if(length(vars) == 1) {
+  #   df <- df %>%
+  #     mutate(group = get_name_from_iso(iso))
+  # } else {
+
     df <- df %>%
-      mutate(group = get_name_from_iso(iso))
-  }
+      left_join(dcodigos2 %>% select(nombre_de_variable, definicion), by = c("group" = "nombre_de_variable")) %>%
+      select(-group) %>%
+      rename(group = definicion)
+#
+#   }
 
   highchart() %>%
-    hc_legend(layout = "proximate", align = "right") %>%
+    hc_legend(align = "left", verticalAlign = "top") %>%
+    hc_tooltip(table = TRUE) %>%
     hc_add_series(df, "line", hcaes(x, y, group = group))
 
 }
